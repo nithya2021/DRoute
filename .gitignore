@@ -9,6 +9,7 @@ node_modules/
 # Production
 /build
 /dist
+packages/*/dist/
 
 # Misc
 .DS_Store
@@ -30,3 +31,12 @@ yarn-error.log*
 # OS
 .DS_Store
 Thumbs.db
+
+# Temporary files
+create-excel.js
+create-full-excel.js
+*.tmp
+
+# Generated samples (development)
+samples/
+package-lock.json
