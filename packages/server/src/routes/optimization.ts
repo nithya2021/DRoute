@@ -1,0 +1,66 @@
+import { Router, Request, Response } from 'express';
+import { optimizeRoutes } from '../utils/route-optimizer';
+import { dataStore } from '../services/data-store';
+import { OptimizationResult } from '@droute/shared';
+
+const router = Router();
+
+router.post('/optimize', (req: Request, res: Response) => {
+  try {
+    const stops = dataStore.getAllStops();
+
+    if (stops.length === 0) {
+      return res.status(400).json({ error: 'No delivery stops available for optimization' });
+    }
+
+    const drivers = dataStore.getAllDrivers().filter((d) => d.status === 'active');
+
+    if (drivers.length === 0) {
+      return res.status(400).json({ error: 'No active drivers available' });
+    }
+
+    // Optimize routes
+    const routes = optimizeRoutes(stops, drivers);
+
+    // Store the routes
+    dataStore.addRoutes(routes);
+
+    // Calculate statistics
+    const averageStopsPerRoute = routes.length > 0 ? Math.round(stops.length / routes.length) : 0;
+    const totalDistance = routes.reduce((sum, route) => sum + route.totalDistance, 0);
+
+    const result: OptimizationResult = {
+      routes,
+      totalStops: stops.length,
+      averageStopsPerRoute,
+      totalDistance: Math.round(totalDistance * 100) / 100,
+    };
+
+    res.json(result);
+  } catch (error) {
+    console.error('Optimization error:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
+
+    res.status(500).json({
+      error: 'Failed to optimize routes',
+      details: message,
+    });
+  }
+});
+
+router.get('/routes', (req: Request, res: Response) => {
+  const routes = dataStore.getAllRoutes();
+  res.json(routes);
+});
+
+router.get('/routes/:id', (req: Request, res: Response) => {
+  const route = dataStore.getRoute(req.params.id);
+
+  if (!route) {
+    return res.status(404).json({ error: 'Route not found' });
+  }
+
+  res.json(route);
+});
+
+export const optimizationRoutes = router;

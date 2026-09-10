@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '3001:3001'
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+    volumes:
+      - ./packages/server/src:/app/packages/server/src
+    command: npm run dev --workspace=@droute/server
+
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - '5173:5173'
+    environment:
+      - REACT_APP_API_URL=http://localhost:3001/api
+    volumes:
+      - ./packages/client/src:/app/packages/client/src
+    depends_on:
+      - server
+    command: npm run dev --workspace=@droute/client
+
+volumes:
+  node_modules:

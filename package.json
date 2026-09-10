@@ -1,0 +1,23 @@
+{
+  "name": "droute",
+  "version": "1.0.0",
+  "description": "Singapore delivery route optimization platform",
+  "private": true,
+  "workspaces": [
+    "packages/server",
+    "packages/client",
+    "packages/shared"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces",
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces",
+    "lint": "npm run lint --workspaces",
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\""
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.0"
+  }
+}
