@@ -9,25 +9,38 @@ export function optimizeRoutes(stops: DeliveryStop[], drivers: Array<{ id: strin
     return [];
   }
 
+  // Determine number of clusters needed
+  const numClusters = Math.max(NUM_DRIVERS, Math.ceil(stops.length / TARGET_STOPS_PER_ROUTE));
+
   // Cluster stops using K-means clustering
-  const clusters = kMeansClustering(stops, NUM_DRIVERS);
+  const clusters = kMeansClustering(stops, numClusters);
 
-  // Create routes from clusters
-  const routes: Route[] = clusters.map((clusterStops, index) => {
-    const driverId = drivers[index % drivers.length].id;
-    const orderedStops = orderStopsForDelivery(clusterStops);
-    const totalDistance = calculateRouteTotalDistance(orderedStops);
-    const estimatedDuration = estimateRouteDuration(totalDistance);
+  // Create routes from clusters, splitting if necessary
+  const routes: Route[] = [];
+  let routeIndex = 0;
 
-    return {
-      id: `route_${Date.now()}_${index}`,
-      driverId,
-      stops: orderedStops,
-      totalDistance,
-      estimatedDuration,
-      status: 'pending',
-      createdAt: new Date(),
-    };
+  clusters.forEach((clusterStops) => {
+    // Split large clusters into multiple routes
+    const subClusters = splitClusterIfNeeded(clusterStops, TARGET_STOPS_PER_ROUTE);
+
+    subClusters.forEach((subCluster) => {
+      const driverId = drivers[routeIndex % drivers.length].id;
+      const orderedStops = orderStopsForDelivery(subCluster);
+      const totalDistance = calculateRouteTotalDistance(orderedStops);
+      const estimatedDuration = estimateRouteDuration(totalDistance, orderedStops.length);
+
+      routes.push({
+        id: `route_${Date.now()}_${routeIndex}`,
+        driverId,
+        stops: orderedStops,
+        totalDistance,
+        estimatedDuration,
+        status: 'pending',
+        createdAt: new Date(),
+      });
+
+      routeIndex++;
+    });
   });
 
   return routes;
@@ -183,10 +196,23 @@ function calculateRouteTotalDistance(stops: DeliveryStop[]): number {
   return total;
 }
 
-function estimateRouteDuration(distanceKm: number): number {
+function estimateRouteDuration(distanceKm: number, numStops: number): number {
   // Average speed in Singapore: ~20 km/h (accounting for traffic)
   // Add 5 minutes per stop for delivery
   const drivingTime = (distanceKm / 20) * 60; // in minutes
-  const deliveryTime = 5 * 20; // assuming ~20 stops per route
+  const deliveryTime = 5 * numStops;
   return Math.round(drivingTime + deliveryTime);
+}
+
+function splitClusterIfNeeded(stops: DeliveryStop[], maxSize: number): DeliveryStop[][] {
+  if (stops.length <= maxSize) {
+    return [stops];
+  }
+
+  const subClusters: DeliveryStop[][] = [];
+  for (let i = 0; i < stops.length; i += maxSize) {
+    subClusters.push(stops.slice(i, i + maxSize));
+  }
+
+  return subClusters;
 }
