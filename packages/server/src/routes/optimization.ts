@@ -1,29 +1,30 @@
 import { Router, Request, Response } from 'express';
 import { optimizeRoutes } from '../utils/route-optimizer';
-import { dataStore } from '../services/data-store';
+import { supabaseStore } from '../services/supabase-store';
 import { OptimizationResult } from '@droute/shared';
 
 const router = Router();
 
-router.post('/optimize', (req: Request, res: Response) => {
+router.post('/optimize', async (req: Request, res: Response) => {
   try {
-    const stops = dataStore.getAllStops();
+    const stops = await supabaseStore.getAllStops();
 
     if (stops.length === 0) {
       return res.status(400).json({ error: 'No delivery stops available for optimization' });
     }
 
-    const drivers = dataStore.getAllDrivers().filter((d) => d.status === 'active');
+    const drivers = await supabaseStore.getAllDrivers();
+    const activeDrivers = drivers.filter((d) => d.status === 'active');
 
-    if (drivers.length === 0) {
+    if (activeDrivers.length === 0) {
       return res.status(400).json({ error: 'No active drivers available' });
     }
 
     // Optimize routes
-    const routes = optimizeRoutes(stops, drivers);
+    const routes = optimizeRoutes(stops, activeDrivers);
 
     // Store the routes
-    dataStore.addRoutes(routes);
+    await supabaseStore.addRoutes(routes);
 
     // Calculate statistics
     const averageStopsPerRoute = routes.length > 0 ? Math.round(stops.length / routes.length) : 0;
@@ -48,19 +49,29 @@ router.post('/optimize', (req: Request, res: Response) => {
   }
 });
 
-router.get('/routes', (req: Request, res: Response) => {
-  const routes = dataStore.getAllRoutes();
-  res.json(routes);
+router.get('/routes', async (req: Request, res: Response) => {
+  try {
+    const routes = await supabaseStore.getAllRoutes();
+    res.json(routes);
+  } catch (error) {
+    console.error('Error fetching routes:', error);
+    res.status(500).json({ error: 'Failed to fetch routes' });
+  }
 });
 
-router.get('/routes/:id', (req: Request, res: Response) => {
-  const route = dataStore.getRoute(req.params.id);
+router.get('/routes/:id', async (req: Request, res: Response) => {
+  try {
+    const route = await supabaseStore.getRoute(req.params.id);
 
-  if (!route) {
-    return res.status(404).json({ error: 'Route not found' });
+    if (!route) {
+      return res.status(404).json({ error: 'Route not found' });
+    }
+
+    res.json(route);
+  } catch (error) {
+    console.error('Error fetching route:', error);
+    res.status(500).json({ error: 'Failed to fetch route' });
   }
-
-  res.json(route);
 });
 
 export const optimizationRoutes = router;

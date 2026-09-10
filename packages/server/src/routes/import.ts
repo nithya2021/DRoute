@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import { parseExcelFile } from '../utils/excel-parser';
-import { dataStore } from '../services/data-store';
+import { supabaseStore } from '../services/supabase-store';
 import { ImportJob } from '@droute/shared';
 
 const router = Router();
@@ -23,7 +23,7 @@ router.post('/excel', upload.single('file'), async (req: Request, res: Response)
       createdAt: new Date(),
     };
 
-    dataStore.addImportJob(job);
+    await supabaseStore.addImportJob(job);
 
     // Parse Excel file
     const stops = await parseExcelFile(req.file.buffer);
@@ -33,10 +33,10 @@ router.post('/excel', upload.single('file'), async (req: Request, res: Response)
     job.completedAt = new Date();
 
     // Clear existing stops and add new ones
-    dataStore.clearStops();
-    dataStore.addStops(stops);
+    await supabaseStore.clearStops();
+    await supabaseStore.addStops(stops);
 
-    dataStore.updateImportJob(jobId, job);
+    await supabaseStore.updateImportJob(jobId, job);
 
     res.json({
       jobId,
@@ -54,19 +54,29 @@ router.post('/excel', upload.single('file'), async (req: Request, res: Response)
   }
 });
 
-router.get('/jobs/:id', (req: Request, res: Response) => {
-  const job = dataStore.getImportJob(req.params.id);
+router.get('/jobs/:id', async (req: Request, res: Response) => {
+  try {
+    const job = await supabaseStore.getImportJob(req.params.id);
 
-  if (!job) {
-    return res.status(404).json({ error: 'Job not found' });
+    if (!job) {
+      return res.status(404).json({ error: 'Job not found' });
+    }
+
+    res.json(job);
+  } catch (error) {
+    console.error('Error fetching import job:', error);
+    res.status(500).json({ error: 'Failed to fetch import job' });
   }
-
-  res.json(job);
 });
 
-router.get('/jobs', (req: Request, res: Response) => {
-  const jobs = dataStore.getAllImportJobs();
-  res.json(jobs);
+router.get('/jobs', async (req: Request, res: Response) => {
+  try {
+    const jobs = await supabaseStore.getAllImportJobs();
+    res.json(jobs);
+  } catch (error) {
+    console.error('Error fetching import jobs:', error);
+    res.status(500).json({ error: 'Failed to fetch import jobs' });
+  }
 });
 
 export const importRoutes = router;
