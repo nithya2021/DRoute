@@ -1,32 +1,44 @@
 import { Router, Request, Response } from 'express';
-import { dataStore } from '../services/data-store';
+import { supabaseStore } from '../services/supabase-store';
 
 const router = Router();
 
-router.get('/', (req: Request, res: Response) => {
-  const drivers = dataStore.getAllDrivers();
-  res.json(drivers);
+router.get('/', async (req: Request, res: Response) => {
+  try {
+    const drivers = await supabaseStore.getAllDrivers();
+    res.json(drivers);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch drivers' });
+  }
 });
 
-router.get('/:id', (req: Request, res: Response) => {
-  const driver = dataStore.getDriver(req.params.id);
+router.get('/:id', async (req: Request, res: Response) => {
+  try {
+    const driver = await supabaseStore.getDriver(req.params.id);
 
-  if (!driver) {
-    return res.status(404).json({ error: 'Driver not found' });
+    if (!driver) {
+      return res.status(404).json({ error: 'Driver not found' });
+    }
+
+    res.json(driver);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch driver' });
   }
-
-  res.json(driver);
 });
 
-router.get('/:id/routes', (req: Request, res: Response) => {
-  const driver = dataStore.getDriver(req.params.id);
+router.get('/:id/routes', async (req: Request, res: Response) => {
+  try {
+    const driver = await supabaseStore.getDriver(req.params.id);
 
-  if (!driver) {
-    return res.status(404).json({ error: 'Driver not found' });
+    if (!driver) {
+      return res.status(404).json({ error: 'Driver not found' });
+    }
+
+    const routes = await supabaseStore.getRoutesByDriver(req.params.id);
+    res.json(routes);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch driver routes' });
   }
-
-  const routes = dataStore.getRoutesByDriver(req.params.id);
-  res.json(routes);
 });
 
 export const driverRoutes = router;

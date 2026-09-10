@@ -1,44 +1,56 @@
 import { Router, Request, Response } from 'express';
-import { dataStore } from '../services/data-store';
+import { supabaseStore } from '../services/supabase-store';
 import { DeliveryProof } from '@droute/shared';
 
 const router = Router();
 
-router.get('/', (req: Request, res: Response) => {
-  const routes = dataStore.getAllRoutes();
-  res.json(routes);
+router.get('/', async (req: Request, res: Response) => {
+  try {
+    const routes = await supabaseStore.getAllRoutes();
+    res.json(routes);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch routes' });
+  }
 });
 
-router.get('/:id', (req: Request, res: Response) => {
-  const route = dataStore.getRoute(req.params.id);
+router.get('/:id', async (req: Request, res: Response) => {
+  try {
+    const route = await supabaseStore.getRoute(req.params.id);
 
-  if (!route) {
-    return res.status(404).json({ error: 'Route not found' });
+    if (!route) {
+      return res.status(404).json({ error: 'Route not found' });
+    }
+
+    res.json(route);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch route' });
   }
-
-  res.json(route);
 });
 
-router.patch('/:id', (req: Request, res: Response) => {
-  const { status } = req.body;
+router.patch('/:id', async (req: Request, res: Response) => {
+  try {
+    const { status } = req.body;
 
-  if (!status || !['pending', 'in-progress', 'completed'].includes(status)) {
-    return res.status(400).json({ error: 'Invalid status' });
+    if (!status || !['pending', 'in-progress', 'completed'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status' });
+    }
+
+    const route = await supabaseStore.updateRoute(req.params.id, {
+      status,
+      ...(status === 'completed' && { completedAt: new Date() }),
+    });
+
+    if (!route) {
+      return res.status(404).json({ error: 'Route not found' });
+    }
+
+    res.json(route);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to update route' });
   }
-
-  const route = dataStore.updateRoute(req.params.id, {
-    status,
-    ...(status === 'completed' && { completedAt: new Date() }),
-  });
-
-  if (!route) {
-    return res.status(404).json({ error: 'Route not found' });
-  }
-
-  res.json(route);
 });
 
-router.post('/:routeId/proof', (req: Request, res: Response) => {
+router.post('/:routeId/proof', async (req: Request, res: Response) => {
   try {
     const { stopId, imageUrl, signatureUrl, notes } = req.body;
 
@@ -46,7 +58,7 @@ router.post('/:routeId/proof', (req: Request, res: Response) => {
       return res.status(400).json({ error: 'Missing required fields: stopId, imageUrl' });
     }
 
-    const route = dataStore.getRoute(req.params.routeId);
+    const route = await supabaseStore.getRoute(req.params.routeId);
     if (!route) {
       return res.status(404).json({ error: 'Route not found' });
     }
@@ -61,7 +73,7 @@ router.post('/:routeId/proof', (req: Request, res: Response) => {
       notes,
     };
 
-    dataStore.addDeliveryProof(proof);
+    await supabaseStore.addDeliveryProof(proof);
 
     res.status(201).json(proof);
   } catch (error) {
@@ -75,9 +87,13 @@ router.post('/:routeId/proof', (req: Request, res: Response) => {
   }
 });
 
-router.get('/:routeId/proofs', (req: Request, res: Response) => {
-  const proofs = dataStore.getDeliveryProofsByRoute(req.params.routeId);
-  res.json(proofs);
+router.get('/:routeId/proofs', async (req: Request, res: Response) => {
+  try {
+    const proofs = await supabaseStore.getDeliveryProofsByRoute(req.params.routeId);
+    res.json(proofs);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch delivery proofs' });
+  }
 });
 
 export const routeRoutes = router;
