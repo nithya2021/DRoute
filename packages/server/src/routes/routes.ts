@@ -68,11 +68,12 @@ router.post('/:routeId/proof', async (req: Request, res: Response) => {
 
     const proof: DeliveryProof = {
       id: `proof_${Date.now()}`,
+      stopId: '',
       routeId: req.params.routeId,
+      timestamp: new Date(),
       imageUrl,
       signatureUrl,
       notes,
-      createdAt: new Date(),
     };
 
     await supabaseStore.addDeliveryProof(proof);
