@@ -63,7 +63,13 @@ async function test(name, method, path, data = null, expectedStatus = 200) {
       return null;
     }
   } catch (error) {
-    console.log(`❌ FAIL (Error: ${error.message})`);
+    // error.message is empty for some socket failures, and a bare "Error:"
+    // says nothing about whether the server is down or the request was bad.
+    const detail = error.code || error.message || 'no error detail available';
+    console.log(`❌ FAIL (${detail})`);
+    if (error.code === 'ECONNREFUSED') {
+      console.log(`   Nothing is listening on ${API_URL} — is the server running?`);
+    }
     failed++;
     return null;
   }
