@@ -119,6 +119,61 @@ export class SupabaseDataStore {
       .eq('id', id);
     if (error) throw error;
   }
+
+  // Backward compatibility stubs
+  async getAllDrivers(): Promise<any[]> {
+    return [];
+  }
+
+  async getDriver(id?: string): Promise<any> {
+    return null;
+  }
+
+  async getAllStops(): Promise<DeliveryStop[]> {
+    return [];
+  }
+
+  async addStops(stops?: DeliveryStop[]): Promise<void> {}
+
+  async clearStops(): Promise<void> {}
+
+  async addImportJob(job?: any): Promise<void> {}
+
+  async updateImportJob(id?: string, updates?: any): Promise<any> {
+    return null;
+  }
+
+  async getImportJob(id?: string): Promise<any> {
+    return null;
+  }
+
+  async getAllImportJobs(): Promise<any[]> {
+    return [];
+  }
+
+  async addRoutes(routes?: any[]): Promise<void> {}
+
+  async getAllRoutes(): Promise<any[]> {
+    return [];
+  }
+
+  async getRoute(id?: string): Promise<any> {
+    return null;
+  }
+
+  async updateRoute(id?: string, updates?: any): Promise<any> {
+    return null;
+  }
+
+  async getRoutesByDriver(driverId?: string): Promise<any[]> {
+    return [];
+  }
+
+  async addDeliveryProof(proof?: any): Promise<void> {}
+
+  async getDeliveryProofsByRoute(routeId?: string): Promise<any[]> {
+    return [];
+  }
 }
 
 export const supabaseStore = new SupabaseDataStore();
