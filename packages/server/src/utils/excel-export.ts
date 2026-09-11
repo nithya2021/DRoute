@@ -1,5 +1,5 @@
 import { utils, write } from 'xlsx';
-import { Route, Driver, DeliveryStop } from '@droute/shared';
+import { Route, Driver, DeliveryStop, buildMapsLegs } from '@droute/shared';
 
 function mapsLink(stop: DeliveryStop): string {
   const { latitude, longitude } = stop.coordinates;
@@ -51,8 +51,14 @@ function driverSheet(route: Route, driver: Driver | undefined) {
       `Status: ${route.status}`,
     ],
     [],
-    ['Stop', 'Customer', 'Address', 'Postal Code', 'Contact', 'Notes', 'Google Maps'],
   ];
+
+  for (const leg of buildMapsLegs(route.stops)) {
+    rows.push([`Route in Maps (stops ${leg.firstStop}-${leg.lastStop})`, leg.url]);
+  }
+
+  rows.push([]);
+  rows.push(['Stop', 'Customer', 'Address', 'Postal Code', 'Contact', 'Notes', 'Google Maps']);
 
   route.stops.forEach((stop, index) => {
     rows.push([

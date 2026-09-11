@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/api';
-import { Route, Driver } from '@droute/shared';
+import { Route, Driver, buildMapsLegs } from '@droute/shared';
 
 export const RoutesSection: React.FC = () => {
   const [routes, setRoutes] = useState<Route[]>([]);
@@ -120,14 +120,19 @@ export const RoutesSection: React.FC = () => {
                       </button>
                     </>
                   )}
-                  <a
-                    href={`https://www.google.com/maps?q=${route.stops.map(s => `${s.coordinates.latitude},${s.coordinates.longitude}`).join('|')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn btn-small btn-map"
-                  >
-                    View on Maps
-                  </a>
+                  {buildMapsLegs(route.stops).map((leg) => (
+                    <a
+                      key={leg.firstStop}
+                      href={leg.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-small btn-map"
+                    >
+                      {leg.firstStop === 1 && leg.lastStop === route.stops.length
+                        ? 'View on Maps'
+                        : `Maps: stops ${leg.firstStop}–${leg.lastStop}`}
+                    </a>
+                  ))}
                 </div>
               </div>
             )}
