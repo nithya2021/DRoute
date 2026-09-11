@@ -1,4 +1,4 @@
-import { DeliveryStop, Coordinate } from '@droute/shared';
+import { DeliveryStop, Coordinate, LocationSource } from '@droute/shared';
 
 const EARTH_RADIUS_KM = 6371;
 const AVERAGE_SPEED_KMH = 20;
@@ -8,6 +8,7 @@ export interface Waypoint {
   address: string;
   postalCode: string;
   coordinates: Coordinate;
+  locationSource?: LocationSource;
 }
 
 export interface SingleRoute {

@@ -1,9 +1,18 @@
 import { utils, write } from 'xlsx';
-import { SkippedRow, buildMapsLegs, Coordinate } from '@droute/shared';
+import { SkippedRow, buildMapsLegs, Coordinate, LocationSource } from '@droute/shared';
 import { SingleRoute } from './route-optimizer';
 
 function mapsLink(coordinates: Coordinate): string {
   return `https://www.google.com/maps/search/?api=1&query=${coordinates.latitude},${coordinates.longitude}`;
+}
+
+// A driver needs to know when a pin is the building versus somewhere in the
+// right district, because an approximate stop is one they should read the
+// address for rather than trust the map.
+function locationLabel(source?: LocationSource): string {
+  if (source === 'onemap') return 'Exact';
+  if (source === 'district') return 'Approx (district)';
+  return 'Unknown';
 }
 
 export function buildSingleRouteWorkbook(route: SingleRoute, skipped: SkippedRow[]): Buffer {
@@ -50,6 +59,7 @@ export function buildSingleRouteWorkbook(route: SingleRoute, skipped: SkippedRow
     'Notes',
     'Leg (km)',
     'Cumulative (km)',
+    'Location',
     'Google Maps',
   ]);
 
@@ -65,6 +75,7 @@ export function buildSingleRouteWorkbook(route: SingleRoute, skipped: SkippedRow
       '',
       0,
       0,
+      locationLabel(route.origin.locationSource),
       mapsLink(route.origin.coordinates),
     ]);
   }
@@ -80,6 +91,7 @@ export function buildSingleRouteWorkbook(route: SingleRoute, skipped: SkippedRow
       stop.notes ?? '',
       Number(route.legDistances[index].toFixed(2)),
       Number(cumulative.toFixed(2)),
+      locationLabel(stop.locationSource),
       mapsLink(stop.coordinates),
     ]);
   });
@@ -95,6 +107,7 @@ export function buildSingleRouteWorkbook(route: SingleRoute, skipped: SkippedRow
       '',
       Number(route.finalLeg.toFixed(2)),
       Number(cumulative.toFixed(2)),
+      locationLabel(route.destination.locationSource),
       mapsLink(route.destination.coordinates),
     ]);
   }
@@ -109,6 +122,7 @@ export function buildSingleRouteWorkbook(route: SingleRoute, skipped: SkippedRow
     { wch: 22 },
     { wch: 10 },
     { wch: 16 },
+    { wch: 18 },
     { wch: 46 },
   ];
   utils.book_append_sheet(book, sheet, 'Route');

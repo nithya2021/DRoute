@@ -1,4 +1,5 @@
 import { Coordinate } from '@droute/shared';
+import { geocodeWithOneMap } from './onemap';
 
 const SINGAPORE_BOUNDS = {
   north: 1.4654,
@@ -118,15 +119,31 @@ export function isKnownPostalDistrict(postalCode: string): boolean {
   return normalized.substring(0, 2) in DISTRICT_COORDINATES;
 }
 
-export async function geocodeAddress(address: string, postalCode: string): Promise<Coordinate> {
-  const normalized = String(postalCode).trim().padStart(6, '0');
-  const district = DISTRICT_COORDINATES[normalized.substring(0, 2)];
+export interface GeocodeResult {
+  coordinates: Coordinate;
+  /** 'onemap' is the real building; 'district' is a spread point within the
+   * postal district, accurate to a kilometre or two at best. */
+  source: 'onemap' | 'district' | 'fallback';
+}
 
-  if (!district) {
-    return SINGAPORE_CENTER;
+export async function geocode(address: string, postalCode: string): Promise<GeocodeResult> {
+  const normalized = String(postalCode).trim().padStart(6, '0');
+
+  const exact = await geocodeWithOneMap(normalized);
+  if (exact) {
+    return { coordinates: exact, source: 'onemap' };
   }
 
-  return jitterWithinDistrict(district, normalized);
+  const district = DISTRICT_COORDINATES[normalized.substring(0, 2)];
+  if (!district) {
+    return { coordinates: SINGAPORE_CENTER, source: 'fallback' };
+  }
+
+  return { coordinates: jitterWithinDistrict(district, normalized), source: 'district' };
+}
+
+export async function geocodeAddress(address: string, postalCode: string): Promise<Coordinate> {
+  return (await geocode(address, postalCode)).coordinates;
 }
 
 export function validateCoordinates(coords: Coordinate): boolean {

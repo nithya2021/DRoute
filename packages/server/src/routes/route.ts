@@ -1,9 +1,10 @@
 import { Router, Request, Response } from 'express';
 import multer from 'multer';
 import { parseExcelFile, extractPostalCode } from '../utils/excel-parser';
-import { geocodeAddress, isKnownPostalDistrict } from '../utils/geocoding';
+import { geocode, isKnownPostalDistrict } from '../utils/geocoding';
 import { optimizeSingleRoute, Waypoint } from '../utils/route-optimizer';
 import { buildSingleRouteWorkbook } from '../utils/excel-export';
+import { resetOneMapCircuit } from '../utils/onemap';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -31,7 +32,8 @@ async function toWaypoint(raw: unknown, label: string): Promise<Waypoint | undef
     );
   }
 
-  return { address, postalCode, coordinates: await geocodeAddress(address, postalCode) };
+  const { coordinates, source } = await geocode(address, postalCode);
+  return { address, postalCode, coordinates, locationSource: source };
 }
 
 router.post('/', upload.single('file'), async (req: Request, res: Response) => {
@@ -39,6 +41,9 @@ router.post('/', upload.single('file'), async (req: Request, res: Response) => {
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
+
+    // A previous request may have tripped the breaker on a transient outage.
+    resetOneMapCircuit();
 
     let origin: Waypoint | undefined;
     let destination: Waypoint | undefined;

@@ -3,11 +3,19 @@ export interface Coordinate {
   longitude: number;
 }
 
+/**
+ * How the coordinates were obtained. 'onemap' is the actual building;
+ * 'district' is a spread point inside the postal district, good to a kilometre
+ * or two; 'fallback' is the island centre and means the position is unusable.
+ */
+export type LocationSource = 'onemap' | 'district' | 'fallback';
+
 export interface DeliveryStop {
   id: string;
   address: string;
   postalCode: string;
   coordinates: Coordinate;
+  locationSource?: LocationSource;
   customerName: string;
   contactNumber?: string;
   notes?: string;

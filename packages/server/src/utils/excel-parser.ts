@@ -1,6 +1,6 @@
 import { read, utils } from 'xlsx';
 import { DeliveryStop, SkippedRow } from '@droute/shared';
-import { geocodeAddress } from './geocoding';
+import { geocode } from './geocoding';
 
 export interface ParsedRow {
   address?: string;
@@ -95,13 +95,14 @@ export async function parseExcelFile(buffer: Buffer): Promise<ParseResult> {
     const postalCode = rawPostalCode.padStart(6, '0');
 
     try {
-      const coordinates = await geocodeAddress(row.address, postalCode);
+      const { coordinates, source } = await geocode(row.address, postalCode);
 
       stops.push({
         id: `stop_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
         address: row.address.trim(),
         postalCode,
         coordinates,
+        locationSource: source,
         customerName: row.customerName?.trim() || 'Unknown',
         contactNumber: row.contactNumber?.trim(),
         notes: row.notes?.trim(),
