@@ -594,3 +594,36 @@ html, body {
     gap: 0.5rem;
   }
 }
+
+.field {
+  margin-bottom: 1.25rem;
+}
+
+.field label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.field input {
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--border-color, #d0d5dd);
+  border-radius: 0.4rem;
+  font-size: 1rem;
+  font-family: inherit;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.field input:focus {
+  outline: 2px solid var(--primary-color, #2563eb);
+  outline-offset: -1px;
+}
+
+.field-hint {
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary, #667085);
+}

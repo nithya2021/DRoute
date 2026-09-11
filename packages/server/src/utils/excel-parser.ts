@@ -39,7 +39,7 @@ const COLUMN_ALIASES: Record<string, keyof ParsedRow> = {
 // own column, and the marker varies: "S 518208", ",S518208", "(S)730764",
 // "Singapore 259957". Take the last six-digit group so a unit number like
 // #15-1206 cannot be mistaken for one.
-function extractPostalCode(address: string): string | undefined {
+export function extractPostalCode(address: string): string | undefined {
   const matches = address.match(/(?:^|[\s,(])(?:s(?:ingapore)?\)?[\s.]*)?(\d{6})(?!\d)/gi);
   if (!matches) {
     return undefined;

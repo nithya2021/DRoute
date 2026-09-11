@@ -1,10 +1,9 @@
 import { utils, write } from 'xlsx';
-import { DeliveryStop, SkippedRow, buildMapsLegs } from '@droute/shared';
+import { SkippedRow, buildMapsLegs, Coordinate } from '@droute/shared';
 import { SingleRoute } from './route-optimizer';
 
-function mapsLink(stop: DeliveryStop): string {
-  const { latitude, longitude } = stop.coordinates;
-  return `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+function mapsLink(coordinates: Coordinate): string {
+  return `https://www.google.com/maps/search/?api=1&query=${coordinates.latitude},${coordinates.longitude}`;
 }
 
 export function buildSingleRouteWorkbook(route: SingleRoute, skipped: SkippedRow[]): Buffer {
@@ -20,8 +19,25 @@ export function buildSingleRouteWorkbook(route: SingleRoute, skipped: SkippedRow
     [],
   ];
 
-  for (const leg of buildMapsLegs(route.stops)) {
-    rows.push([`Open in Maps (stops ${leg.firstStop}-${leg.lastStop})`, leg.url]);
+  if (route.origin) {
+    rows.push(['Start', route.origin.address]);
+  }
+  if (route.destination) {
+    rows.push(['End', route.destination.address]);
+  }
+  if (route.origin || route.destination) {
+    rows.push([]);
+  }
+
+  // Maps needs the endpoints in the chain, not just the deliveries, or it
+  // routes from the first delivery instead of where the driver actually starts.
+  const mapPoints = [
+    ...(route.origin ? [route.origin] : []),
+    ...route.stops,
+    ...(route.destination ? [route.destination] : []),
+  ];
+  for (const leg of buildMapsLegs(mapPoints)) {
+    rows.push([`Open in Maps (points ${leg.firstStop}-${leg.lastStop})`, leg.url]);
   }
 
   rows.push([]);
@@ -38,6 +54,21 @@ export function buildSingleRouteWorkbook(route: SingleRoute, skipped: SkippedRow
   ]);
 
   let cumulative = 0;
+
+  if (route.origin) {
+    rows.push([
+      'Start',
+      '',
+      route.origin.address,
+      route.origin.postalCode,
+      '',
+      '',
+      0,
+      0,
+      mapsLink(route.origin.coordinates),
+    ]);
+  }
+
   route.stops.forEach((stop, index) => {
     cumulative += route.legDistances[index];
     rows.push([
@@ -49,13 +80,28 @@ export function buildSingleRouteWorkbook(route: SingleRoute, skipped: SkippedRow
       stop.notes ?? '',
       Number(route.legDistances[index].toFixed(2)),
       Number(cumulative.toFixed(2)),
-      mapsLink(stop),
+      mapsLink(stop.coordinates),
     ]);
   });
 
+  if (route.destination) {
+    cumulative += route.finalLeg;
+    rows.push([
+      'End',
+      '',
+      route.destination.address,
+      route.destination.postalCode,
+      '',
+      '',
+      Number(route.finalLeg.toFixed(2)),
+      Number(cumulative.toFixed(2)),
+      mapsLink(route.destination.coordinates),
+    ]);
+  }
+
   const sheet = utils.aoa_to_sheet(rows);
   sheet['!cols'] = [
-    { wch: 6 },
+    { wch: 7 },
     { wch: 20 },
     { wch: 56 },
     { wch: 12 },

@@ -1,4 +1,10 @@
-import { DeliveryStop } from './types';
+import { Coordinate } from './types';
+
+// Anything positioned: a delivery stop, or the start and end points the user
+// supplies for a run.
+export interface MapPoint {
+  coordinates: Coordinate;
+}
 
 // The Maps URLs API accepts at most 9 waypoints between origin and
 // destination, so a single link covers 11 stops. Longer routes are split into
@@ -12,11 +18,11 @@ export interface MapsLeg {
   lastStop: number;
 }
 
-function coordinate(stop: DeliveryStop): string {
+function coordinate(stop: MapPoint): string {
   return `${stop.coordinates.latitude},${stop.coordinates.longitude}`;
 }
 
-export function buildMapsLegs(stops: DeliveryStop[]): MapsLeg[] {
+export function buildMapsLegs(stops: MapPoint[]): MapsLeg[] {
   if (stops.length === 0) {
     return [];
   }

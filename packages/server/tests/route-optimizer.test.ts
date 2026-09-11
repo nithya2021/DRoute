@@ -99,6 +99,87 @@ describe('optimizeSingleRoute', () => {
     }
   });
 
+  describe('with a start and end point', () => {
+    const origin = {
+      address: 'Depot, S 079903',
+      postalCode: '079903',
+      coordinates: { latitude: 1.2764, longitude: 103.8437 },
+    };
+    const destination = {
+      address: 'Yard, S 738099',
+      postalCode: '738099',
+      coordinates: { latitude: 1.437, longitude: 103.786 },
+    };
+
+    it('measures the first leg from the start point, not from zero', () => {
+      const stops = createTestStops(20);
+      const route = optimizeSingleRoute(stops, { origin });
+
+      expect(route.origin).toBe(origin);
+      expect(route.legDistances[0]).toBeGreaterThan(0);
+      expect(route.legDistances[0]).toBeCloseTo(
+        distance({ coordinates: origin.coordinates } as DeliveryStop, route.stops[0]),
+        6
+      );
+    });
+
+    it('begins at whichever stop is nearest the start point', () => {
+      const stops = createTestStops(20);
+      const route = optimizeSingleRoute(stops, { origin });
+
+      const nearest = stops.reduce((best, stop) =>
+        distance({ coordinates: origin.coordinates } as DeliveryStop, stop) <
+        distance({ coordinates: origin.coordinates } as DeliveryStop, best)
+          ? stop
+          : best
+      );
+
+      expect(route.legDistances[0]).toBeLessThanOrEqual(
+        distance({ coordinates: origin.coordinates } as DeliveryStop, nearest) + 1e-6
+      );
+    });
+
+    it('adds a final leg to the end point and counts it in the total', () => {
+      const route = optimizeSingleRoute(createTestStops(20), { origin, destination });
+      const legSum = route.legDistances.reduce((sum, leg) => sum + leg, 0);
+
+      expect(route.destination).toBe(destination);
+      expect(route.finalLeg).toBeGreaterThan(0);
+      expect(route.totalDistance).toBeCloseTo(legSum + route.finalLeg, 6);
+    });
+
+    it('has no final leg when no end point is given', () => {
+      const route = optimizeSingleRoute(createTestStops(20), { origin });
+
+      expect(route.finalLeg).toBe(0);
+      expect(route.destination).toBeUndefined();
+    });
+
+    it('still visits every stop exactly once', () => {
+      const stops = createTestStops(30);
+      const route = optimizeSingleRoute(stops, { origin, destination });
+
+      expect(new Set(route.stops.map((s) => s.id))).toEqual(new Set(stops.map((s) => s.id)));
+    });
+
+    it('beats the same stops routed without the endpoints in mind', () => {
+      const stops = createTestStops(30);
+      const aware = optimizeSingleRoute(stops, { origin, destination });
+
+      // Order ignoring the endpoints, then bolt them on: what you get if the
+      // start and end are an afterthought rather than part of the optimisation.
+      const naive = optimizeSingleRoute(stops);
+      const naiveTotal =
+        distance({ coordinates: origin.coordinates } as DeliveryStop, naive.stops[0]) +
+        naive.totalDistance +
+        distance(naive.stops[naive.stops.length - 1], {
+          coordinates: destination.coordinates,
+        } as DeliveryStop);
+
+      expect(aware.totalDistance).toBeLessThanOrEqual(naiveTotal);
+    });
+  });
+
   it('estimates a duration that grows with the route', () => {
     const short = optimizeSingleRoute(createTestStops(5));
     const long = optimizeSingleRoute(createTestStops(40));
