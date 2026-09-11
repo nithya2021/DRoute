@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
+import { SingleRouteSection } from './components/SingleRouteSection';
 import { ImportSection } from './components/ImportSection';
 import { OptimizationSection } from './components/OptimizationSection';
 import { RoutesSection } from './components/RoutesSection';
 import { DriversSection } from './components/DriversSection';
 
-type Tab = 'import' | 'optimize' | 'routes' | 'drivers';
+type Tab = 'single' | 'import' | 'optimize' | 'routes' | 'drivers';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<Tab>('import');
+  const [activeTab, setActiveTab] = useState<Tab>('single');
 
   return (
     <div className="app">
@@ -20,6 +21,12 @@ export default function App() {
 
       <nav className="nav">
         <div className="container">
+          <button
+            className={`nav-item ${activeTab === 'single' ? 'active' : ''}`}
+            onClick={() => setActiveTab('single')}
+          >
+            Optimised Route
+          </button>
           <button
             className={`nav-item ${activeTab === 'import' ? 'active' : ''}`}
             onClick={() => setActiveTab('import')}
@@ -49,6 +56,7 @@ export default function App() {
 
       <main className="main">
         <div className="container">
+          {activeTab === 'single' && <SingleRouteSection />}
           {activeTab === 'import' && <ImportSection />}
           {activeTab === 'optimize' && <OptimizationSection />}
           {activeTab === 'routes' && <RoutesSection />}

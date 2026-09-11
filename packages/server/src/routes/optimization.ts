@@ -1,12 +1,19 @@
 import { Router, Request, Response } from 'express';
-import { optimizeRoutes } from '../utils/route-optimizer';
-import { buildRoutesWorkbook, buildExceptionsWorkbook } from '../utils/excel-export';
+import multer from 'multer';
+import { optimizeRoutes, optimizeSingleRoute } from '../utils/route-optimizer';
+import { parseExcelFile } from '../utils/excel-parser';
+import {
+  buildRoutesWorkbook,
+  buildExceptionsWorkbook,
+  buildSingleRouteWorkbook,
+} from '../utils/excel-export';
 import { isKnownPostalDistrict } from '../utils/geocoding';
 import { supabaseStore } from '../services/supabase-store';
 import { serverError } from './error-response';
 import { OptimizationResult } from '@droute/shared';
 
 const router = Router();
+const upload = multer({ storage: multer.memoryStorage() });
 
 router.post('/optimize', async (req: Request, res: Response) => {
   try {
@@ -35,6 +42,37 @@ router.post('/optimize', async (req: Request, res: Response) => {
     res.json(result);
   } catch (error) {
     serverError(res, 'Failed to optimize routes', error);
+  }
+});
+
+// Upload a spreadsheet of addresses, get one optimised route back as a
+// spreadsheet. Self-contained: no drivers, and nothing is stored.
+router.post('/single-route', upload.single('file'), async (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const { stops, skipped } = await parseExcelFile(req.file.buffer);
+    if (stops.length === 0) {
+      return res.status(400).json({
+        error: 'No deliverable addresses found in the file',
+        details: 'Every row was missing a postal code.',
+        skipped: skipped.slice(0, 20),
+      });
+    }
+
+    const workbook = buildSingleRouteWorkbook(optimizeSingleRoute(stops), skipped);
+    const filename = `optimised-route-${new Date().toISOString().slice(0, 10)}.xlsx`;
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(workbook);
+  } catch (error) {
+    serverError(res, 'Failed to build optimised route', error);
   }
 });
 

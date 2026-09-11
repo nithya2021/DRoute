@@ -152,6 +152,77 @@ function calculateCentroid(stops: DeliveryStop[]): Coordinate {
   return { latitude, longitude };
 }
 
+export interface SingleRoute {
+  stops: DeliveryStop[];
+  legDistances: number[];
+  totalDistance: number;
+  estimatedDuration: number;
+}
+
+// One route over every stop, rather than a cluster per driver.
+export function optimizeSingleRoute(stops: DeliveryStop[]): SingleRoute {
+  const ordered = improveWithTwoOpt(orderStopsForDelivery(stops));
+
+  const legDistances = ordered.map((stop, index) =>
+    index === 0 ? 0 : haversineDistance(ordered[index - 1].coordinates, stop.coordinates)
+  );
+  const totalDistance = legDistances.reduce((sum, leg) => sum + leg, 0);
+
+  return {
+    stops: ordered,
+    legDistances,
+    totalDistance,
+    estimatedDuration: estimateRouteDuration(totalDistance, ordered.length),
+  };
+}
+
+// Nearest-neighbour commits to whatever is closest at each step, which strands
+// outliers and forces long jumps back across the island later. 2-opt repeatedly
+// reverses a segment whenever doing so shortens the route, which removes those
+// crossings. Worth the extra passes here because this single route is the
+// whole deliverable.
+function improveWithTwoOpt(stops: DeliveryStop[]): DeliveryStop[] {
+  if (stops.length < 4) {
+    return stops;
+  }
+
+  const route = [...stops];
+  const distance = (a: DeliveryStop, b: DeliveryStop) =>
+    haversineDistance(a.coordinates, b.coordinates);
+  const maxPasses = 40;
+
+  for (let pass = 0; pass < maxPasses; pass++) {
+    let improved = false;
+
+    for (let i = 1; i < route.length - 1; i++) {
+      for (let j = i + 1; j < route.length; j++) {
+        const before = route[i - 1];
+        const start = route[i];
+        const end = route[j];
+        const after = route[j + 1];
+
+        // Reversing i..j swaps edges (before,start) and (end,after) for
+        // (before,end) and (start,after). With no stop after j the route ends
+        // there, so only the leading edge changes.
+        const removed = distance(before, start) + (after ? distance(end, after) : 0);
+        const added = distance(before, end) + (after ? distance(start, after) : 0);
+
+        if (added < removed - 1e-9) {
+          const segment = route.slice(i, j + 1).reverse();
+          route.splice(i, segment.length, ...segment);
+          improved = true;
+        }
+      }
+    }
+
+    if (!improved) {
+      break;
+    }
+  }
+
+  return route;
+}
+
 function orderStopsForDelivery(stops: DeliveryStop[]): DeliveryStop[] {
   if (stops.length <= 1) {
     return stops;
