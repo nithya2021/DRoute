@@ -30,12 +30,12 @@ Once project is created:
 1. Go to **Settings → API** in left sidebar
 2. Copy these values:
    - **Project URL** → `SUPABASE_URL`
-   - **anon public** key → `SUPABASE_ANON_KEY`
+   - **Secret key** (`sb_secret_...`) under Settings → API Keys → `SUPABASE_SECRET_KEY`
 
 Example:
 ```
 SUPABASE_URL=https://xxxxxxxxxxxx.supabase.co
-SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+SUPABASE_SECRET_KEY=<your sb_secret_... key>
 ```
 
 ---
@@ -75,7 +75,7 @@ REACT_APP_API_URL=http://localhost:3001/api
 
 # Supabase Configuration
 SUPABASE_URL=https://xxxxxxxxxxxx.supabase.co
-SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+SUPABASE_SECRET_KEY=<your sb_secret_... key>
 ```
 
 Replace with your actual credentials from Step 2.
@@ -91,7 +91,7 @@ REACT_APP_API_URL=http://localhost:3001/api
 
 # Supabase Configuration
 SUPABASE_URL=your_supabase_url_here
-SUPABASE_ANON_KEY=your_supabase_anon_key_here
+SUPABASE_SECRET_KEY=your_secret_key_here
 ```
 
 ---
@@ -245,7 +245,7 @@ cat /home/user/DRoute/.env
 
 # Check credentials are set
 echo $SUPABASE_URL
-echo $SUPABASE_ANON_KEY
+echo $SUPABASE_SECRET_KEY
 ```
 
 ### Error: "Auth session missing"
@@ -286,7 +286,7 @@ For production deployment (.env.production):
 
 ```env
 SUPABASE_URL=your_production_url
-SUPABASE_ANON_KEY=your_production_key
+SUPABASE_SECRET_KEY=your_production_key
 NODE_ENV=production
 ```
 

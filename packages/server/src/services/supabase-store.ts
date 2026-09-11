@@ -6,9 +6,11 @@ let client: SupabaseClient | null = null;
 function db(): SupabaseClient {
   if (!client) {
     const url = process.env.SUPABASE_URL;
-    const key = process.env.SUPABASE_ANON_KEY;
+    // Server-side only: this key bypasses row level security, so it must never
+    // be sent to the browser or committed.
+    const key = process.env.SUPABASE_SECRET_KEY;
     if (!url || !key) {
-      throw new Error('SUPABASE_URL and SUPABASE_ANON_KEY must be set in .env');
+      throw new Error('SUPABASE_URL and SUPABASE_SECRET_KEY must be set in .env');
     }
     client = createClient(url, key);
   }

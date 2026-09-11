@@ -66,7 +66,7 @@ REACT_APP_API_URL=http://localhost:3001/api
 
 # Supabase Configuration (ALREADY SET)
 SUPABASE_URL=https://vevapobsxogijxxkwnen.supabase.co
-SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZldmFwb2JzeG9naWp4eGt3bmVuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODkwNjg2ODYsImV4cCI6MjEwNDY0NDY4Nn0.67oCNU1MC5izKSrfG_HhVqDSa4CZtn2_9TMDlc1yB1s
+SUPABASE_SECRET_KEY=<your sb_secret_... key>
 ```
 
 Save and close.
@@ -277,7 +277,7 @@ cat .env | grep SUPABASE_URL
 
 # If empty, update it:
 echo "SUPABASE_URL=https://vevapobsxogijxxkwnen.supabase.co" >> .env
-echo "SUPABASE_ANON_KEY=<your-key-here>" >> .env
+echo "SUPABASE_SECRET_KEY=<your-key-here>" >> .env
 ```
 
 ### Issue: Excel import fails
