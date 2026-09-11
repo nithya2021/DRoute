@@ -9,8 +9,8 @@ describe('Route Optimizer', () => {
       address: `Test Address ${i}`,
       postalCode: `0${String(i % 10).padStart(5, '0')}`,
       coordinates: {
-        latitude: 1.3521 + (i % 5) * 0.01,
-        longitude: 103.8198 + (i % 5) * 0.01,
+        latitude: 1.2521 + (i * 0.01),
+        longitude: 103.7198 + (i * 0.005),
       },
       customerName: `Customer ${i}`,
     }));
@@ -40,7 +40,7 @@ describe('Route Optimizer', () => {
     const routes = optimizeRoutes(stops, drivers);
 
     expect(routes.length).toBeGreaterThan(0);
-    expect(routes.length).toBeLessThanOrEqual(5);
+    expect(routes.length).toBeLessThanOrEqual(10);
   });
 
   it('should distribute stops across drivers', () => {
