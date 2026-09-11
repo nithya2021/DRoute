@@ -3,9 +3,8 @@ import { SingleRouteSection } from './components/SingleRouteSection';
 import { ImportSection } from './components/ImportSection';
 import { OptimizationSection } from './components/OptimizationSection';
 import { RoutesSection } from './components/RoutesSection';
-import { DriversSection } from './components/DriversSection';
 
-type Tab = 'single' | 'import' | 'optimize' | 'routes' | 'drivers';
+type Tab = 'single' | 'import' | 'optimize' | 'routes';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('single');
@@ -45,12 +44,6 @@ export default function App() {
           >
             View Routes
           </button>
-          <button
-            className={`nav-item ${activeTab === 'drivers' ? 'active' : ''}`}
-            onClick={() => setActiveTab('drivers')}
-          >
-            Drivers
-          </button>
         </div>
       </nav>
 
@@ -60,7 +53,6 @@ export default function App() {
           {activeTab === 'import' && <ImportSection />}
           {activeTab === 'optimize' && <OptimizationSection />}
           {activeTab === 'routes' && <RoutesSection />}
-          {activeTab === 'drivers' && <DriversSection />}
         </div>
       </main>
 
