@@ -5,8 +5,11 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "predev": "npm --prefix ../shared run build",
     "dev": "vite",
+    "predev:host": "npm --prefix ../shared run build",
     "dev:host": "vite --host",
+    "prebuild": "npm --prefix ../shared run build",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest"
