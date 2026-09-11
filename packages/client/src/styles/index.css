@@ -110,6 +110,19 @@ html, body {
   color: var(--text-primary);
 }
 
+.section-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.5rem;
+}
+
+.section-header h2 {
+  margin-bottom: 0;
+}
+
 .card {
   background-color: var(--bg-primary);
   border-radius: 0.5rem;

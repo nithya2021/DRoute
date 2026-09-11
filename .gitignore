@@ -41,3 +41,6 @@ create-full-excel.js
 # Generated samples (development)
 samples/
 package-lock.json
+
+# Generated route exports
+droute-routes-*.xlsx

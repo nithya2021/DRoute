@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../services/api';
-import { Route } from '@droute/shared';
+import { Route, Driver } from '@droute/shared';
 
 export const RoutesSection: React.FC = () => {
   const [routes, setRoutes] = useState<Route[]>([]);
+  const [drivers, setDrivers] = useState<Driver[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedRoute, setExpandedRoute] = useState<string | null>(null);
 
@@ -14,13 +15,22 @@ export const RoutesSection: React.FC = () => {
   const loadRoutes = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/optimization/routes');
-      setRoutes(response.data);
+      const [routesResponse, driversResponse] = await Promise.all([
+        api.get('/optimization/routes'),
+        api.get('/drivers'),
+      ]);
+      setRoutes(routesResponse.data);
+      setDrivers(driversResponse.data);
     } catch (error) {
       console.error('Failed to load routes:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const driverLabel = (driverId: string) => {
+    const driver = drivers.find((d) => d.id === driverId);
+    return driver ? `${driver.name} (${driver.vehicleNumber})` : driverId;
   };
 
   const updateRouteStatus = async (routeId: string, status: 'pending' | 'in-progress' | 'completed') => {
@@ -49,7 +59,16 @@ export const RoutesSection: React.FC = () => {
 
   return (
     <section className="section">
-      <h2>Delivery Routes ({routes.length})</h2>
+      <div className="section-header">
+        <h2>Delivery Routes ({routes.length})</h2>
+        <a
+          className="btn btn-small"
+          href={`${api.defaults.baseURL}/optimization/export`}
+          download
+        >
+          Export to Excel
+        </a>
+      </div>
 
       <div className="card">
         {routes.map((route) => (
@@ -59,7 +78,7 @@ export const RoutesSection: React.FC = () => {
               onClick={() => setExpandedRoute(expandedRoute === route.id ? null : route.id)}
             >
               <div className="route-title">
-                <span className="driver-id">{route.driverId}</span>
+                <span className="driver-id">{driverLabel(route.driverId)}</span>
                 <span className="stops-count">{route.stops.length} stops</span>
               </div>
               <div className="route-info">

@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { optimizeRoutes } from '../utils/route-optimizer';
+import { buildRoutesWorkbook } from '../utils/excel-export';
 import { supabaseStore } from '../services/supabase-store';
 import { serverError } from './error-response';
 import { OptimizationResult } from '@droute/shared';
@@ -32,6 +33,27 @@ router.post('/optimize', async (req: Request, res: Response) => {
     res.json(result);
   } catch (error) {
     serverError(res, 'Failed to optimize routes', error);
+  }
+});
+
+router.get('/export', async (req: Request, res: Response) => {
+  try {
+    const routes = await supabaseStore.getAllRoutes();
+    if (routes.length === 0) {
+      return res.status(400).json({ error: 'No routes to export. Optimize deliveries first.' });
+    }
+
+    const workbook = buildRoutesWorkbook(routes, await supabaseStore.getAllDrivers());
+    const filename = `droute-routes-${new Date().toISOString().slice(0, 10)}.xlsx`;
+
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(workbook);
+  } catch (error) {
+    serverError(res, 'Failed to export routes', error);
   }
 });
 
