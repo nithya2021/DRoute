@@ -35,6 +35,20 @@ const COLUMN_ALIASES: Record<string, keyof ParsedRow> = {
   instructions: 'notes',
 };
 
+// Singapore addresses usually carry the postal code inline rather than in its
+// own column, and the marker varies: "S 518208", ",S518208", "(S)730764",
+// "Singapore 259957". Take the last six-digit group so a unit number like
+// #15-1206 cannot be mistaken for one.
+function extractPostalCode(address: string): string | undefined {
+  const matches = address.match(/(?:^|[\s,(])(?:s(?:ingapore)?\)?[\s.]*)?(\d{6})(?!\d)/gi);
+  if (!matches) {
+    return undefined;
+  }
+
+  const last = matches[matches.length - 1].match(/(\d{6})(?!\d)/);
+  return last ? last[1] : undefined;
+}
+
 function normalizeRow(raw: Record<string, unknown>): ParsedRow {
   const row: ParsedRow = {};
 
@@ -48,43 +62,60 @@ function normalizeRow(raw: Record<string, unknown>): ParsedRow {
   return row;
 }
 
-export async function parseExcelFile(buffer: Buffer): Promise<DeliveryStop[]> {
+export interface SkippedRow {
+  row: number;
+  value: string;
+  reason: string;
+}
+
+export interface ParseResult {
+  stops: DeliveryStop[];
+  skipped: SkippedRow[];
+}
+
+export async function parseExcelFile(buffer: Buffer): Promise<ParseResult> {
   const workbook = read(buffer);
   const worksheet = workbook.Sheets[workbook.SheetNames[0]];
   const rawRows: Record<string, unknown>[] = utils.sheet_to_json(worksheet);
 
   const stops: DeliveryStop[] = [];
+  const skipped: SkippedRow[] = [];
 
   for (let i = 0; i < rawRows.length; i++) {
     const row = normalizeRow(rawRows[i]);
+    const rowNumber = i + 2;
 
-    if (!row.address || !row.postalCode) {
-      console.warn(`Skipping row ${i + 2}: missing address or postal code`);
+    if (!row.address) {
       continue;
     }
 
     // Excel treats a postal code as a number and drops its leading zero, so
     // 018953 arrives as 18953.
-    const postalCode = row.postalCode.trim().padStart(6, '0');
+    const rawPostalCode = row.postalCode?.trim() || extractPostalCode(row.address);
+
+    if (!rawPostalCode) {
+      skipped.push({ row: rowNumber, value: row.address, reason: 'no postal code found' });
+      continue;
+    }
+
+    const postalCode = rawPostalCode.padStart(6, '0');
 
     try {
       const coordinates = await geocodeAddress(row.address, postalCode);
 
-      const stop: DeliveryStop = {
-        id: `stop_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      stops.push({
+        id: `stop_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`,
         address: row.address.trim(),
         postalCode,
         coordinates,
         customerName: row.customerName?.trim() || 'Unknown',
         contactNumber: row.contactNumber?.trim(),
         notes: row.notes?.trim(),
-      };
-
-      stops.push(stop);
+      });
     } catch (error) {
-      console.warn(`Failed to geocode address: ${row.address}, ${row.postalCode}`, error);
+      skipped.push({ row: rowNumber, value: row.address, reason: 'could not be geocoded' });
     }
   }
 
-  return stops;
+  return { stops, skipped };
 }

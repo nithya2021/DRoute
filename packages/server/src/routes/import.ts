@@ -26,7 +26,7 @@ router.post('/excel', upload.single('file'), async (req: Request, res: Response)
 
     await supabaseStore.addImportJob(job);
 
-    const stops = await parseExcelFile(req.file.buffer);
+    const { stops, skipped } = await parseExcelFile(req.file.buffer);
     job.totalStops = stops.length;
     job.processedStops = stops.length;
     job.status = 'completed';
@@ -40,6 +40,8 @@ router.post('/excel', upload.single('file'), async (req: Request, res: Response)
       jobId,
       message: 'File imported successfully',
       stopsCount: stops.length,
+      skippedCount: skipped.length,
+      skipped: skipped.slice(0, 20),
     });
   } catch (error) {
     serverError(res, 'Failed to process file', error);
