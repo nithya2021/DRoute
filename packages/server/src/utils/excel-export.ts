@@ -1,5 +1,5 @@
 import { utils, write } from 'xlsx';
-import { Route, Driver, DeliveryStop, buildMapsLegs } from '@droute/shared';
+import { Route, Driver, DeliveryStop, SkippedRow, buildMapsLegs } from '@droute/shared';
 
 function mapsLink(stop: DeliveryStop): string {
   const { latitude, longitude } = stop.coordinates;
@@ -83,6 +83,68 @@ function driverSheet(route: Route, driver: Driver | undefined) {
     { wch: 46 },
   ];
   return sheet;
+}
+
+export interface ExceptionReport {
+  skippedAtImport: SkippedRow[];
+  unknownDistrict: DeliveryStop[];
+  unassigned: DeliveryStop[];
+}
+
+export function buildExceptionsWorkbook(report: ExceptionReport): Buffer {
+  const book = utils.book_new();
+
+  const overview = utils.aoa_to_sheet([
+    ['Exception', 'Count', 'What it means'],
+    [
+      'Skipped at import',
+      report.skippedAtImport.length,
+      'No postal code found in the row, so it never became a delivery',
+    ],
+    [
+      'Unknown postal district',
+      report.unknownDistrict.length,
+      'Postal code outside the known districts; placed at the island centre, so its location is wrong',
+    ],
+    [
+      'Assigned to no driver',
+      report.unassigned.length,
+      'Imported as a delivery but missing from every route',
+    ],
+  ]);
+  overview['!cols'] = [{ wch: 26 }, { wch: 8 }, { wch: 78 }];
+  utils.book_append_sheet(book, overview, 'Overview');
+
+  const skippedRows: (string | number)[][] = [['Excel Row', 'Cell Contents', 'Reason']];
+  for (const skipped of report.skippedAtImport) {
+    skippedRows.push([skipped.row, skipped.value, skipped.reason]);
+  }
+  const skippedSheet = utils.aoa_to_sheet(skippedRows);
+  skippedSheet['!cols'] = [{ wch: 10 }, { wch: 62 }, { wch: 28 }];
+  utils.book_append_sheet(book, skippedSheet, 'Skipped At Import');
+
+  const stopSheet = (stops: DeliveryStop[], sheetName: string) => {
+    const rows: (string | number)[][] = [
+      ['Customer', 'Address', 'Postal Code', 'Contact', 'Notes'],
+    ];
+    for (const stop of stops) {
+      rows.push([
+        stop.customerName,
+        stop.address,
+        stop.postalCode,
+        stop.contactNumber ?? '',
+        stop.notes ?? '',
+      ]);
+    }
+    const sheet = utils.aoa_to_sheet(rows);
+    sheet['!cols'] = [{ wch: 20 }, { wch: 56 }, { wch: 12 }, { wch: 14 }, { wch: 24 }];
+    utils.book_append_sheet(book, sheet, sheetName);
+  };
+
+  stopSheet(report.unknownDistrict, 'Unknown District');
+  stopSheet(report.unassigned, 'No Driver Assigned');
+
+  return write(book, { type: 'buffer', bookType: 'xlsx' });
 }
 
 export function buildRoutesWorkbook(routes: Route[], drivers: Driver[]): Buffer {

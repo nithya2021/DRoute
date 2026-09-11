@@ -61,13 +61,22 @@ export const RoutesSection: React.FC = () => {
     <section className="section">
       <div className="section-header">
         <h2>Delivery Routes ({routes.length})</h2>
-        <a
-          className="btn btn-small"
-          href={`${api.defaults.baseURL}/optimization/export`}
-          download
-        >
-          Export to Excel
-        </a>
+        <div className="header-actions">
+          <a
+            className="btn btn-small"
+            href={`${api.defaults.baseURL}/optimization/export`}
+            download
+          >
+            Export to Excel
+          </a>
+          <a
+            className="btn btn-small"
+            href={`${api.defaults.baseURL}/optimization/exceptions`}
+            download
+          >
+            Exception Report
+          </a>
+        </div>
       </div>
 
       <div className="card">

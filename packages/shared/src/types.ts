@@ -42,6 +42,12 @@ export interface DeliveryProof {
   notes?: string;
 }
 
+export interface SkippedRow {
+  row: number;
+  value: string;
+  reason: string;
+}
+
 export interface ImportJob {
   id: string;
   filename: string;
@@ -49,6 +55,7 @@ export interface ImportJob {
   processedStops: number;
   status: 'pending' | 'processing' | 'completed' | 'failed';
   errorMessage?: string;
+  skippedRows?: SkippedRow[];
   createdAt: Date;
   completedAt?: Date;
 }

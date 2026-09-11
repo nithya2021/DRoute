@@ -100,6 +100,7 @@ const jobToRow = (j: ImportJob) => ({
   total_stops: j.totalStops,
   processed_stops: j.processedStops,
   error_message: j.errorMessage ?? null,
+  skipped_rows: j.skippedRows ?? [],
   created_at: j.createdAt,
   completed_at: j.completedAt ?? null,
 });
@@ -111,6 +112,7 @@ const jobFromRow = (r: any): ImportJob => ({
   totalStops: r.total_stops ?? 0,
   processedStops: r.processed_stops ?? 0,
   errorMessage: r.error_message ?? undefined,
+  skippedRows: r.skipped_rows ?? [],
   createdAt: new Date(r.created_at),
   completedAt: r.completed_at ? new Date(r.completed_at) : undefined,
 });

@@ -1,5 +1,5 @@
 import { read, utils } from 'xlsx';
-import { DeliveryStop, Coordinate } from '@droute/shared';
+import { DeliveryStop, SkippedRow } from '@droute/shared';
 import { geocodeAddress } from './geocoding';
 
 export interface ParsedRow {
@@ -60,12 +60,6 @@ function normalizeRow(raw: Record<string, unknown>): ParsedRow {
   }
 
   return row;
-}
-
-export interface SkippedRow {
-  row: number;
-  value: string;
-  reason: string;
 }
 
 export interface ParseResult {

@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS import_jobs (
   total_stops INTEGER DEFAULT 0,
   processed_stops INTEGER DEFAULT 0,
   error_message TEXT,
+  skipped_rows JSONB NOT NULL DEFAULT '[]'::jsonb,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
   completed_at TIMESTAMP WITH TIME ZONE
 );

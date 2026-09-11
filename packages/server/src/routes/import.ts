@@ -29,6 +29,7 @@ router.post('/excel', upload.single('file'), async (req: Request, res: Response)
     const { stops, skipped } = await parseExcelFile(req.file.buffer);
     job.totalStops = stops.length;
     job.processedStops = stops.length;
+    job.skippedRows = skipped;
     job.status = 'completed';
     job.completedAt = new Date();
 

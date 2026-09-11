@@ -110,6 +110,14 @@ function jitterWithinDistrict(base: Coordinate, postalCode: string): Coordinate 
   };
 }
 
+// A code outside the known districts falls back to the island centre, so the
+// stop still routes but lands nowhere near its real address. Callers need to
+// be able to tell those apart and report them.
+export function isKnownPostalDistrict(postalCode: string): boolean {
+  const normalized = String(postalCode).trim().padStart(6, '0');
+  return normalized.substring(0, 2) in DISTRICT_COORDINATES;
+}
+
 export async function geocodeAddress(address: string, postalCode: string): Promise<Coordinate> {
   const normalized = String(postalCode).trim().padStart(6, '0');
   const district = DISTRICT_COORDINATES[normalized.substring(0, 2)];

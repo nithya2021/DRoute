@@ -44,3 +44,4 @@ package-lock.json
 
 # Generated route exports
 droute-routes-*.xlsx
+droute-exceptions-*.xlsx

@@ -123,6 +123,12 @@ html, body {
   margin-bottom: 0;
 }
 
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
 .card {
   background-color: var(--bg-primary);
   border-radius: 0.5rem;

@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { optimizeRoutes } from '../utils/route-optimizer';
-import { buildRoutesWorkbook } from '../utils/excel-export';
+import { buildRoutesWorkbook, buildExceptionsWorkbook } from '../utils/excel-export';
+import { isKnownPostalDistrict } from '../utils/geocoding';
 import { supabaseStore } from '../services/supabase-store';
 import { serverError } from './error-response';
 import { OptimizationResult } from '@droute/shared';
@@ -33,6 +34,38 @@ router.post('/optimize', async (req: Request, res: Response) => {
     res.json(result);
   } catch (error) {
     serverError(res, 'Failed to optimize routes', error);
+  }
+});
+
+router.get('/exceptions', async (req: Request, res: Response) => {
+  try {
+    const [stops, routes, jobs] = await Promise.all([
+      supabaseStore.getAllStops(),
+      supabaseStore.getAllRoutes(),
+      supabaseStore.getAllImportJobs(),
+    ]);
+
+    const latestJob = jobs.sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    )[0];
+
+    const assignedIds = new Set(routes.flatMap((route) => route.stops.map((stop) => stop.id)));
+
+    const workbook = buildExceptionsWorkbook({
+      skippedAtImport: latestJob?.skippedRows ?? [],
+      unknownDistrict: stops.filter((stop) => !isKnownPostalDistrict(stop.postalCode)),
+      unassigned: stops.filter((stop) => !assignedIds.has(stop.id)),
+    });
+
+    const filename = `droute-exceptions-${new Date().toISOString().slice(0, 10)}.xlsx`;
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.send(workbook);
+  } catch (error) {
+    serverError(res, 'Failed to export exception report', error);
   }
 });
 
