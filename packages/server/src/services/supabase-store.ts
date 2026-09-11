@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { DeliveryStop, Route, Driver, ImportJob, DeliveryProof } from '@droute/shared';
+import { DeliveryStop } from '@droute/shared';
 
 const supabaseUrl = process.env.SUPABASE_URL!;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY!;
@@ -7,141 +7,117 @@ const supabaseAnonKey = process.env.SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 export class SupabaseDataStore {
-  // Stops
-  async addStop(stop: DeliveryStop): Promise<void> {
-    const { error } = await supabase.from('delivery_stops').insert([stop]);
+  async addAddress(address: DeliveryStop, batchId: string): Promise<void> {
+    const { error } = await supabase.from('addresses').insert([
+      {
+        id: address.id,
+        upload_batch_id: batchId,
+        name: address.customerName,
+        address: address.address,
+        latitude: address.coordinates.latitude,
+        longitude: address.coordinates.longitude,
+      },
+    ]);
     if (error) throw error;
   }
 
-  async addStops(stops: DeliveryStop[]): Promise<void> {
-    const { error } = await supabase.from('delivery_stops').insert(stops);
-    if (error) throw error;
-  }
-
-  async getStop(id: string): Promise<DeliveryStop | undefined> {
+  async getAddressesByBatch(batchId: string): Promise<DeliveryStop[]> {
     const { data, error } = await supabase
-      .from('delivery_stops')
+      .from('addresses')
       .select('*')
-      .eq('id', id)
-      .single();
-    if (error && error.code !== 'PGRST116') throw error;
-    return data;
-  }
-
-  async getAllStops(): Promise<DeliveryStop[]> {
-    const { data, error } = await supabase.from('delivery_stops').select('*');
+      .eq('upload_batch_id', batchId);
     if (error) throw error;
-    return data || [];
+
+    return (data || []).map((d) => ({
+      id: d.id,
+      address: d.address,
+      postalCode: '',
+      customerName: d.name,
+      coordinates: {
+        latitude: d.latitude,
+        longitude: d.longitude,
+      },
+    }));
   }
 
-  async clearStops(): Promise<void> {
-    const { error } = await supabase.from('delivery_stops').delete().gt('id', '');
+  async saveRouteCalculation(
+    batchId: string,
+    sourceId: string,
+    destinationId: string,
+    orderedStopIds: string[],
+    totalDistance: number,
+    totalDuration: number
+  ): Promise<string> {
+    const routeId = `route_${Date.now()}`;
+    const { error } = await supabase.from('route_calculations').insert([
+      {
+        id: routeId,
+        upload_batch_id: batchId,
+        source_address_id: sourceId,
+        destination_address_id: destinationId,
+        ordered_stops: orderedStopIds,
+        total_distance: totalDistance,
+        total_duration: totalDuration,
+      },
+    ]);
     if (error) throw error;
+    return routeId;
   }
 
-  // Routes
-  async addRoute(route: Route): Promise<void> {
-    const { error } = await supabase.from('routes').insert([route]);
-    if (error) throw error;
-  }
-
-  async addRoutes(routes: Route[]): Promise<void> {
-    const { error } = await supabase.from('routes').insert(routes);
-    if (error) throw error;
-  }
-
-  async getRoute(id: string): Promise<Route | undefined> {
-    const { data, error } = await supabase.from('routes').select('*').eq('id', id).single();
-    if (error && error.code !== 'PGRST116') throw error;
-    return data;
-  }
-
-  async getAllRoutes(): Promise<Route[]> {
-    const { data, error } = await supabase.from('routes').select('*');
-    if (error) throw error;
-    return data || [];
-  }
-
-  async getRoutesByDriver(driverId: string): Promise<Route[]> {
-    const { data, error } = await supabase.from('routes').select('*').eq('driver_id', driverId);
-    if (error) throw error;
-    return data || [];
-  }
-
-  async updateRoute(id: string, updates: Partial<Route>): Promise<Route | undefined> {
-    const { data, error } = await supabase.from('routes').update(updates).eq('id', id).select().single();
-    if (error && error.code !== 'PGRST116') throw error;
-    return data;
-  }
-
-  // Drivers
-  async addDriver(driver: Driver): Promise<void> {
-    const { error } = await supabase.from('drivers').insert([driver]);
-    if (error) throw error;
-  }
-
-  async addDrivers(drivers: Driver[]): Promise<void> {
-    const { error } = await supabase.from('drivers').insert(drivers);
-    if (error) throw error;
-  }
-
-  async getDriver(id: string): Promise<Driver | undefined> {
-    const { data, error } = await supabase.from('drivers').select('*').eq('id', id).single();
-    if (error && error.code !== 'PGRST116') throw error;
-    return data;
-  }
-
-  async getAllDrivers(): Promise<Driver[]> {
-    const { data, error } = await supabase.from('drivers').select('*');
-    if (error) throw error;
-    return data || [];
-  }
-
-  // Import Jobs
-  async addImportJob(job: ImportJob): Promise<void> {
-    const { error } = await supabase.from('import_jobs').insert([job]);
-    if (error) throw error;
-  }
-
-  async getImportJob(id: string): Promise<ImportJob | undefined> {
-    const { data, error } = await supabase.from('import_jobs').select('*').eq('id', id).single();
-    if (error && error.code !== 'PGRST116') throw error;
-    return data;
-  }
-
-  async updateImportJob(id: string, updates: Partial<ImportJob>): Promise<ImportJob | undefined> {
+  async getRouteCalculation(
+    routeId: string
+  ): Promise<{
+    id: string;
+    orderedStopIds: string[];
+    totalDistance: number;
+    totalDuration: number;
+    batchId: string;
+  } | null> {
     const { data, error } = await supabase
-      .from('import_jobs')
-      .update(updates)
-      .eq('id', id)
-      .select()
+      .from('route_calculations')
+      .select('*')
+      .eq('id', routeId)
       .single();
     if (error && error.code !== 'PGRST116') throw error;
-    return data;
+    if (!data) return null;
+
+    return {
+      id: data.id,
+      orderedStopIds: data.ordered_stops || [],
+      totalDistance: data.total_distance,
+      totalDuration: data.total_duration,
+      batchId: data.upload_batch_id,
+    };
   }
 
-  async getAllImportJobs(): Promise<ImportJob[]> {
-    const { data, error } = await supabase.from('import_jobs').select('*');
+  async createUploadJob(id: string, filename: string, totalRecords: number): Promise<void> {
+    const { error } = await supabase.from('upload_jobs').insert([
+      {
+        id,
+        filename,
+        total_records: totalRecords,
+        status: 'processing',
+      },
+    ]);
     if (error) throw error;
-    return data || [];
   }
 
-  // Delivery Proofs
-  async addDeliveryProof(proof: DeliveryProof): Promise<void> {
-    const { error } = await supabase.from('delivery_proofs').insert([proof]);
+  async updateUploadJob(
+    id: string,
+    status: string,
+    processedRecords: number,
+    errorMessage?: string
+  ): Promise<void> {
+    const { error } = await supabase
+      .from('upload_jobs')
+      .update({
+        status,
+        processed_records: processedRecords,
+        error_message: errorMessage,
+        completed_at: ['completed', 'failed'].includes(status) ? new Date().toISOString() : null,
+      })
+      .eq('id', id);
     if (error) throw error;
-  }
-
-  async getDeliveryProof(id: string): Promise<DeliveryProof | undefined> {
-    const { data, error } = await supabase.from('delivery_proofs').select('*').eq('id', id).single();
-    if (error && error.code !== 'PGRST116') throw error;
-    return data;
-  }
-
-  async getDeliveryProofsByRoute(routeId: string): Promise<DeliveryProof[]> {
-    const { data, error } = await supabase.from('delivery_proofs').select('*').eq('route_id', routeId);
-    if (error) throw error;
-    return data || [];
   }
 }
 

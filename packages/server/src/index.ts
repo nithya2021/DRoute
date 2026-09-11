@@ -5,6 +5,7 @@ import { importRoutes } from './routes/import';
 import { optimizationRoutes } from './routes/optimization';
 import { driverRoutes } from './routes/drivers';
 import { routeRoutes } from './routes/routes';
+import { shortestRouteRouter } from './routes/shortest-route';
 
 dotenv.config();
 
@@ -19,6 +20,7 @@ app.use('/api/import', importRoutes);
 app.use('/api/optimization', optimizationRoutes);
 app.use('/api/drivers', driverRoutes);
 app.use('/api/routes', routeRoutes);
+app.use('/api/shortest-route', shortestRouteRouter);
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

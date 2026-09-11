@@ -1,62 +1,41 @@
--- DRoute Supabase Schema
+-- DRoute Shortest Route Optimizer Schema
 
--- Drivers Table
-CREATE TABLE IF NOT EXISTS drivers (
+-- Addresses Table (uploaded from Excel)
+CREATE TABLE IF NOT EXISTS addresses (
   id TEXT PRIMARY KEY,
+  upload_batch_id TEXT NOT NULL,
   name TEXT NOT NULL,
-  vehicle_number TEXT NOT NULL UNIQUE,
-  phone_number TEXT NOT NULL,
-  status TEXT NOT NULL DEFAULT 'active',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
-);
-
--- Delivery Stops Table
-CREATE TABLE IF NOT EXISTS delivery_stops (
-  id TEXT PRIMARY KEY,
   address TEXT NOT NULL,
-  postal_code TEXT NOT NULL,
-  customer_name TEXT,
-  contact_number TEXT,
-  notes TEXT,
   latitude DECIMAL(10, 8),
   longitude DECIMAL(11, 8),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
 
--- Routes Table
-CREATE TABLE IF NOT EXISTS routes (
+-- Route Calculations Table
+CREATE TABLE IF NOT EXISTS route_calculations (
   id TEXT PRIMARY KEY,
-  driver_id TEXT NOT NULL REFERENCES drivers(id),
-  status TEXT NOT NULL DEFAULT 'pending',
-  stops TEXT[] NOT NULL DEFAULT '{}',
+  upload_batch_id TEXT NOT NULL,
+  source_address_id TEXT NOT NULL REFERENCES addresses(id),
+  destination_address_id TEXT NOT NULL REFERENCES addresses(id),
+  ordered_stops TEXT[] NOT NULL DEFAULT '{}',
   total_distance DECIMAL(10, 2),
-  estimated_duration INTEGER,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
+  total_duration INTEGER,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
 
--- Import Jobs Table
-CREATE TABLE IF NOT EXISTS import_jobs (
+-- Upload Jobs Table
+CREATE TABLE IF NOT EXISTS upload_jobs (
   id TEXT PRIMARY KEY,
-  status TEXT NOT NULL DEFAULT 'processing',
+  filename TEXT NOT NULL,
   total_records INTEGER,
   processed_records INTEGER DEFAULT 0,
+  status TEXT NOT NULL DEFAULT 'processing',
   error_message TEXT,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
   completed_at TIMESTAMP WITH TIME ZONE
 );
 
--- Delivery Proofs Table
-CREATE TABLE IF NOT EXISTS delivery_proofs (
-  id TEXT PRIMARY KEY,
-  route_id TEXT NOT NULL REFERENCES routes(id),
-  image_url TEXT,
-  notes TEXT,
-  signature_url TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
-);
-
 -- Indexes for better query performance
-CREATE INDEX IF NOT EXISTS idx_routes_driver_id ON routes(driver_id);
-CREATE INDEX IF NOT EXISTS idx_delivery_proofs_route_id ON delivery_proofs(route_id);
-CREATE INDEX IF NOT EXISTS idx_import_jobs_status ON import_jobs(status);
+CREATE INDEX IF NOT EXISTS idx_addresses_upload_batch ON addresses(upload_batch_id);
+CREATE INDEX IF NOT EXISTS idx_route_calculations_batch ON route_calculations(upload_batch_id);
+CREATE INDEX IF NOT EXISTS idx_upload_jobs_status ON upload_jobs(status);
