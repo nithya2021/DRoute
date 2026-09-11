@@ -1,14 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { SingleRouteSection } from './components/SingleRouteSection';
-import { ImportSection } from './components/ImportSection';
-import { OptimizationSection } from './components/OptimizationSection';
-import { RoutesSection } from './components/RoutesSection';
-
-type Tab = 'single' | 'import' | 'optimize' | 'routes';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<Tab>('single');
-
   return (
     <div className="app">
       <header className="header">
@@ -18,47 +11,15 @@ export default function App() {
         </div>
       </header>
 
-      <nav className="nav">
-        <div className="container">
-          <button
-            className={`nav-item ${activeTab === 'single' ? 'active' : ''}`}
-            onClick={() => setActiveTab('single')}
-          >
-            Optimised Route
-          </button>
-          <button
-            className={`nav-item ${activeTab === 'import' ? 'active' : ''}`}
-            onClick={() => setActiveTab('import')}
-          >
-            Import Deliveries
-          </button>
-          <button
-            className={`nav-item ${activeTab === 'optimize' ? 'active' : ''}`}
-            onClick={() => setActiveTab('optimize')}
-          >
-            Optimize Routes
-          </button>
-          <button
-            className={`nav-item ${activeTab === 'routes' ? 'active' : ''}`}
-            onClick={() => setActiveTab('routes')}
-          >
-            View Routes
-          </button>
-        </div>
-      </nav>
-
       <main className="main">
         <div className="container">
-          {activeTab === 'single' && <SingleRouteSection />}
-          {activeTab === 'import' && <ImportSection />}
-          {activeTab === 'optimize' && <OptimizationSection />}
-          {activeTab === 'routes' && <RoutesSection />}
+          <SingleRouteSection />
         </div>
       </main>
 
       <footer className="footer">
         <div className="container">
-          <p>&copy; 2024 DRoute. All rights reserved.</p>
+          <p>&copy; 2026 DRoute</p>
         </div>
       </footer>
     </div>

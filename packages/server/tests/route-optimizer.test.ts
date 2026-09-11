@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { optimizeRoutes } from '../src/utils/route-optimizer';
+import { optimizeSingleRoute } from '../src/utils/route-optimizer';
 import { DeliveryStop } from '@droute/shared';
 
-describe('Route Optimizer', () => {
+describe('optimizeSingleRoute', () => {
   // Every stop needs a distinct coordinate. Repeating a handful of points makes
-  // a correctly-clustered route measure zero distance, since the clustering
-  // groups the identical points together and every leg within it is zero-length.
-  const createTestStops = (count: number): DeliveryStop[] => {
-    return Array.from({ length: count }, (_, i) => ({
+  // a correctly ordered route measure zero distance, since consecutive stops
+  // sharing a location have a zero-length leg between them.
+  const createTestStops = (count: number): DeliveryStop[] =>
+    Array.from({ length: count }, (_, i) => ({
       id: `stop_${i}`,
       address: `Test Address ${i}`,
       postalCode: `0${String(i % 10).padStart(5, '0')}`,
@@ -17,95 +17,93 @@ describe('Route Optimizer', () => {
       },
       customerName: `Customer ${i}`,
     }));
+
+  const EARTH_RADIUS_KM = 6371;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const distance = (a: DeliveryStop, b: DeliveryStop) => {
+    const dLat = toRad(b.coordinates.latitude - a.coordinates.latitude);
+    const dLng = toRad(b.coordinates.longitude - a.coordinates.longitude);
+    const h =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(a.coordinates.latitude)) *
+        Math.cos(toRad(b.coordinates.latitude)) *
+        Math.sin(dLng / 2) ** 2;
+    return EARTH_RADIUS_KM * 2 * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h));
   };
 
-  const createTestDrivers = () => [
-    { id: 'driver_1', name: 'Driver 1' },
-    { id: 'driver_2', name: 'Driver 2' },
-    { id: 'driver_3', name: 'Driver 3' },
-    { id: 'driver_4', name: 'Driver 4' },
-    { id: 'driver_5', name: 'Driver 5' },
-  ];
+  const pathLength = (stops: DeliveryStop[]) =>
+    stops.reduce((sum, stop, i) => (i === 0 ? 0 : sum + distance(stops[i - 1], stop)), 0);
 
-  it('should optimize empty stops', () => {
-    const stops: DeliveryStop[] = [];
-    const drivers = createTestDrivers();
+  it('returns an empty route for no stops', () => {
+    const route = optimizeSingleRoute([]);
 
-    const routes = optimizeRoutes(stops, drivers);
-
-    expect(routes).toEqual([]);
+    expect(route.stops).toEqual([]);
+    expect(route.totalDistance).toBe(0);
   });
 
-  it('should create routes for multiple stops', () => {
-    const stops = createTestStops(100);
-    const drivers = createTestDrivers();
+  it('handles a single stop', () => {
+    const route = optimizeSingleRoute(createTestStops(1));
 
-    const routes = optimizeRoutes(stops, drivers);
-
-    expect(routes.length).toBeGreaterThan(0);
-    expect(routes.length).toBeLessThanOrEqual(5);
+    expect(route.stops).toHaveLength(1);
+    expect(route.totalDistance).toBe(0);
+    expect(route.legDistances).toEqual([0]);
   });
 
-  it('should distribute stops across drivers', () => {
-    const stops = createTestStops(100);
-    const drivers = createTestDrivers();
-
-    const routes = optimizeRoutes(stops, drivers);
-    const totalStops = routes.reduce((sum, route) => sum + route.stops.length, 0);
-
-    expect(totalStops).toBe(100);
-  });
-
-  it('should have realistic stop counts per route', () => {
-    const stops = createTestStops(100);
-    const drivers = createTestDrivers();
-
-    const routes = optimizeRoutes(stops, drivers);
-
-    routes.forEach((route) => {
-      expect(route.stops.length).toBeGreaterThan(0);
-      expect(route.stops.length).toBeLessThanOrEqual(25);
-    });
-  });
-
-  it('should set correct route properties', () => {
+  it('includes every stop exactly once', () => {
     const stops = createTestStops(50);
-    const drivers = createTestDrivers();
+    const route = optimizeSingleRoute(stops);
 
-    const routes = optimizeRoutes(stops, drivers);
-
-    routes.forEach((route) => {
-      expect(route.id).toBeDefined();
-      expect(route.driverId).toBeDefined();
-      expect(route.stops).toBeDefined();
-      expect(route.totalDistance).toBeGreaterThan(0);
-      expect(route.estimatedDuration).toBeGreaterThan(0);
-      expect(route.status).toBe('pending');
-      expect(route.createdAt).toBeDefined();
-    });
+    expect(route.stops).toHaveLength(50);
+    expect(new Set(route.stops.map((s) => s.id)).size).toBe(50);
+    expect(new Set(route.stops.map((s) => s.id))).toEqual(new Set(stops.map((s) => s.id)));
   });
 
-  it('should calculate route distance', () => {
-    const stops = createTestStops(20);
-    const drivers = createTestDrivers();
+  it('reports a leg distance per stop, with zero for the first', () => {
+    const route = optimizeSingleRoute(createTestStops(20));
 
-    const routes = optimizeRoutes(stops, drivers);
-
-    routes.forEach((route) => {
-      expect(route.totalDistance).toBeGreaterThan(0);
-      expect(Number.isFinite(route.totalDistance)).toBe(true);
-    });
+    expect(route.legDistances).toHaveLength(route.stops.length);
+    expect(route.legDistances[0]).toBe(0);
+    expect(route.legDistances.slice(1).every((leg) => leg > 0)).toBe(true);
   });
 
-  it('should assign stops to specific drivers', () => {
-    const stops = createTestStops(25);
-    const drivers = createTestDrivers();
+  it('totals the leg distances', () => {
+    const route = optimizeSingleRoute(createTestStops(30));
+    const summed = route.legDistances.reduce((sum, leg) => sum + leg, 0);
 
-    const routes = optimizeRoutes(stops, drivers);
+    expect(route.totalDistance).toBeCloseTo(summed, 6);
+    expect(route.totalDistance).toBeGreaterThan(0);
+    expect(Number.isFinite(route.totalDistance)).toBe(true);
+  });
 
-    const assignedDrivers = new Set(routes.map((r) => r.driverId));
-    routes.forEach((route) => {
-      expect(drivers.some((d) => d.id === route.driverId)).toBe(true);
-    });
+  it('is no worse than visiting the stops in their original order', () => {
+    const stops = createTestStops(40);
+    const route = optimizeSingleRoute(stops);
+
+    expect(route.totalDistance).toBeLessThan(pathLength(stops));
+  });
+
+  it('leaves no crossing that reversing a segment would shorten', () => {
+    const route = optimizeSingleRoute(createTestStops(25));
+    const ordered = route.stops;
+
+    for (let i = 1; i < ordered.length - 1; i++) {
+      for (let j = i + 1; j < ordered.length; j++) {
+        const after = ordered[j + 1];
+        const removed =
+          distance(ordered[i - 1], ordered[i]) + (after ? distance(ordered[j], after) : 0);
+        const added =
+          distance(ordered[i - 1], ordered[j]) + (after ? distance(ordered[i], after) : 0);
+
+        expect(added).toBeGreaterThanOrEqual(removed - 1e-9);
+      }
+    }
+  });
+
+  it('estimates a duration that grows with the route', () => {
+    const short = optimizeSingleRoute(createTestStops(5));
+    const long = optimizeSingleRoute(createTestStops(40));
+
+    expect(short.estimatedDuration).toBeGreaterThan(0);
+    expect(long.estimatedDuration).toBeGreaterThan(short.estimatedDuration);
   });
 });

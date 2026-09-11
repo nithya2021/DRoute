@@ -18,7 +18,7 @@ export const SingleRouteSection: React.FC = () => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await api.post('/optimization/single-route', formData, {
+      const response = await api.post('/route', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
         responseType: 'blob',
       });
