@@ -1,3 +1,4 @@
+import path from 'path';
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -6,7 +7,10 @@ import { optimizationRoutes } from './routes/optimization';
 import { driverRoutes } from './routes/drivers';
 import { routeRoutes } from './routes/routes';
 
-dotenv.config();
+// .env lives at the repo root, but this package runs with its own directory as
+// the working directory, so a bare dotenv.config() would look in the wrong
+// place. src/ and dist/ sit at the same depth, so one path covers both.
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
 const app = express();
 const PORT = process.env.PORT || 3001;
