@@ -189,7 +189,7 @@ The default 5 drivers need to be seeded into Supabase. Run this SQL in Supabase 
 INSERT INTO drivers (id, name, vehicle_number, phone_number, status) VALUES
   ('driver_1', 'Ahmad', 'SG001', '6581234561', 'active'),
   ('driver_2', 'Bala', 'SG002', '6581234562', 'active'),
-  ('driver_3', 'Chen', 'SG003', 'SG003', '6581234563', 'active'),
+  ('driver_3', 'Chen', 'SG003', '6581234563', 'active'),
   ('driver_4', 'David', 'SG004', '6581234564', 'active'),
   ('driver_5', 'Ethan', 'SG005', '6581234565', 'active');
 ```

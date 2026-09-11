@@ -3,14 +3,17 @@ import { optimizeRoutes } from '../src/utils/route-optimizer';
 import { DeliveryStop } from '@droute/shared';
 
 describe('Route Optimizer', () => {
+  // Every stop needs a distinct coordinate. Repeating a handful of points makes
+  // a correctly-clustered route measure zero distance, since the clustering
+  // groups the identical points together and every leg within it is zero-length.
   const createTestStops = (count: number): DeliveryStop[] => {
     return Array.from({ length: count }, (_, i) => ({
       id: `stop_${i}`,
       address: `Test Address ${i}`,
       postalCode: `0${String(i % 10).padStart(5, '0')}`,
       coordinates: {
-        latitude: 1.3521 + (i % 5) * 0.01,
-        longitude: 103.8198 + (i % 5) * 0.01,
+        latitude: 1.28 + (i % 10) * 0.018,
+        longitude: 103.75 + Math.floor(i / 10) * 0.02,
       },
       customerName: `Customer ${i}`,
     }));

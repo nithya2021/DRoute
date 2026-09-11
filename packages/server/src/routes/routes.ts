@@ -1,36 +1,33 @@
 import { Router, Request, Response } from 'express';
 import { supabaseStore } from '../services/supabase-store';
+import { serverError } from './error-response';
 import { DeliveryProof } from '@droute/shared';
 
 const router = Router();
 
 router.get('/', async (req: Request, res: Response) => {
   try {
-    const routes = await supabaseStore.getAllRoutes();
-    res.json(routes);
+    res.json(await supabaseStore.getAllRoutes());
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch routes' });
+    serverError(res, 'Failed to fetch routes', error);
   }
 });
 
 router.get('/:id', async (req: Request, res: Response) => {
   try {
     const route = await supabaseStore.getRoute(req.params.id);
-
     if (!route) {
       return res.status(404).json({ error: 'Route not found' });
     }
-
     res.json(route);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch route' });
+    serverError(res, 'Failed to fetch route', error);
   }
 });
 
 router.patch('/:id', async (req: Request, res: Response) => {
   try {
     const { status } = req.body;
-
     if (!status || !['pending', 'in-progress', 'completed'].includes(status)) {
       return res.status(400).json({ error: 'Invalid status' });
     }
@@ -43,17 +40,15 @@ router.patch('/:id', async (req: Request, res: Response) => {
     if (!route) {
       return res.status(404).json({ error: 'Route not found' });
     }
-
     res.json(route);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to update route' });
+    serverError(res, 'Failed to update route', error);
   }
 });
 
 router.post('/:routeId/proof', async (req: Request, res: Response) => {
   try {
     const { stopId, imageUrl, signatureUrl, notes } = req.body;
-
     if (!stopId || !imageUrl) {
       return res.status(400).json({ error: 'Missing required fields: stopId, imageUrl' });
     }
@@ -74,25 +69,17 @@ router.post('/:routeId/proof', async (req: Request, res: Response) => {
     };
 
     await supabaseStore.addDeliveryProof(proof);
-
     res.status(201).json(proof);
   } catch (error) {
-    console.error('Error creating delivery proof:', error);
-    const message = error instanceof Error ? error.message : 'Unknown error';
-
-    res.status(500).json({
-      error: 'Failed to create delivery proof',
-      details: message,
-    });
+    serverError(res, 'Failed to create delivery proof', error);
   }
 });
 
 router.get('/:routeId/proofs', async (req: Request, res: Response) => {
   try {
-    const proofs = await supabaseStore.getDeliveryProofsByRoute(req.params.routeId);
-    res.json(proofs);
+    res.json(await supabaseStore.getDeliveryProofsByRoute(req.params.routeId));
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch delivery proofs' });
+    serverError(res, 'Failed to fetch delivery proofs', error);
   }
 });
 
