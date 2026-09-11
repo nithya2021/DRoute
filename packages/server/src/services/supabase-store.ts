@@ -161,6 +161,14 @@ export class SupabaseDataStore {
     if (error) fail('addRoutes', error);
   }
 
+  // A pending route is a plan nobody has started, so re-optimizing replaces
+  // it. Anything in progress or completed is real work and stays, along with
+  // the delivery proofs that reference it.
+  async clearPendingRoutes(): Promise<void> {
+    const { error } = await db().from('routes').delete().eq('status', 'pending');
+    if (error) fail('clearPendingRoutes', error);
+  }
+
   async getRoute(id: string): Promise<Route | undefined> {
     const { data, error } = await db().from('routes').select('*').eq('id', id).maybeSingle();
     if (error) fail('getRoute', error);

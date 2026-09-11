@@ -21,6 +21,7 @@ router.post('/optimize', async (req: Request, res: Response) => {
     }
 
     const routes = optimizeRoutes(stops, drivers);
+    await supabaseStore.clearPendingRoutes();
     await supabaseStore.addRoutes(routes);
 
     const totalDistance = routes.reduce((sum, route) => sum + route.totalDistance, 0);
